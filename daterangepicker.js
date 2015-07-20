@@ -45,22 +45,12 @@
 
         //create the picker HTML object
         var DRPTemplate = '<div class="daterangepicker dropdown-menu">' +
-                '<div class="calendar first left"></div>' +
-                '<div class="calendar second right"></div>' +
+                '<div class="calendar first left">' +
+                '</div>' +
+                '<div class="calendar second right">' +
+                '</div>' +
                 '<div class="ranges">' +
-                  '<div class="range_inputs">' +
-                    '<div class="daterangepicker_start_input">' +
-                      '<label for="daterangepicker_start"></label>' +
-                      '<input class="input-mini" type="text" name="daterangepicker_start" value="" />' +
-                    '</div>' +
-                    '<div class="daterangepicker_end_input">' +
-                      '<label for="daterangepicker_end"></label>' +
-                      '<input class="input-mini" type="text" name="daterangepicker_end" value="" />' +
-                    '</div>' +
-                    '<div class="daterangepicker_singleDate" style="display:none;">' +
-                      '<label for="daterangepicker_singleDate">Date</label>' +
-                      '<input class="input-mini" type="text" name="daterangepicker_singleDate" value="" />' +
-                    '</div>' +
+                  '<div class="range-btns">' +
                     '<button class="applyBtn" disabled="disabled" type="button"></button>&nbsp;' +
                     '<button class="cancelBtn" type="button"></button>' +
                   '</div>' +
@@ -99,7 +89,7 @@
             .on('keydown.daterangepicker', '.daterangepicker_start_input,.daterangepicker_end_input,.daterangepicker_singleDate', $.proxy(this.inputsKeydown, this))
             .on('click.daterangepicker', 'li', $.proxy(this.clickRange, this))
             .on('mouseenter.daterangepicker', 'li', $.proxy(this.enterRange, this))
-            .on('mouseleave.daterangepicker', 'li', $.proxy(this.updateFormInputs, this));
+            .on('mouseleave.daterangepicker', 'li', $.proxy(this.leaveRange, this));
 
         if (this.element.is('input')) {
             this.element.on({
@@ -423,7 +413,6 @@
             } else {
                 this.container.removeClass('single');
                 this.container.find('.calendar.right').removeClass('single');
-                this.container.find('.calendar.left').show();
                 this.container.find('.ranges').show();
             }
 
@@ -439,6 +428,11 @@
             this.rightCalendar = {
                 month: moment([this.endDate.year(), this.endDate.month(), 1, this.endDate.hour(), this.endDate.minute(), this.endDate.second()]),
                 calendar: []
+            };
+
+            this.calendarInput = {
+                right: '<div class="daterangepicker_input daterangepicker_end_input"><input class="input-mini" type="text" name="daterangepicker_end" value="" /></div>',
+                left: '<div class="daterangepicker_input daterangepicker_start_input"><input class="input-mini" type="text" name="daterangepicker_start" value="" /></div><div class="daterangepicker_input daterangepicker_singleDate" style="display:none;"><input class="input-mini" type="text" name="daterangepicker_singleDate" value="" /></div>'
             };
 
             if (this.opens == 'right' || this.opens == 'center') {
@@ -467,8 +461,8 @@
             this.container.removeClass('opensleft opensright').addClass('opens' + this.opens);
 
             if (this.startDate.isSame(this.endDate, 'day')) {
-                this.container.find('.ranges .daterangepicker_start_input, .ranges .daterangepicker_end_input').hide();
-                this.container.find('.ranges .daterangepicker_singleDate').show();
+                this.container.find('.daterangepicker_start_input, .daterangepicker_end_input').hide();
+                this.container.find('.daterangepicker_singleDate').show();
             }
 
             this.updateView();
@@ -710,30 +704,60 @@
 
         enterRange: function (e) {
             // mouse pointer has entered a range label
+            var date;
             var label = e.target.innerHTML;
             var dates = this.ranges[label];
-            if (label === this.locale.customDateLabel || (dates && dates[2] && dates[2]['singleDate'])) {
-                var date;
-                if (dates) date = dates[0] 
-                this.container.find('.ranges .daterangepicker_start_input, .ranges .daterangepicker_end_input').hide();
-                this.container.find('.ranges .daterangepicker_singleDate').show();
-                this.container.find('input[name=daterangepicker_singleDate]').val(moment(date).format(this.format));
-                this.container.addClass('single');
-                this.container.find('.calendar.left').show();
-                this.container.find('.calendar.right').hide();
-            } else {
-                this.container.removeClass('single');
-                this.container.find('.calendar.right').show();
-                this.container.find('.calendar.left').show();
-                this.container.find('.ranges .daterangepicker_singleDate').hide();
-                this.container.find('.ranges .daterangepicker_start_input, .ranges .daterangepicker_end_input').show();
-                if (dates) {
-                  this.container.find('input[name=daterangepicker_start]').val(dates[0].format(this.format));
-                  this.container.find('input[name=daterangepicker_end]').val(dates[1].format(this.format));
-                } else {
-                  this.updateView();
-                }
+            if (dates) {
+              date = dates[0];
             }
+            if (label === this.locale.customDateLabel) {
+              this.showSingleCalendar(date);
+            } else if (label === this.locale.customRangeLabel) {
+              this.showRangeCalendars(dates);
+            } else if (!this.active.label || (this.active.label !== this.locale.customrangelabel && this.active.label !== this.locale.customdatelabel)) {
+              this.container.find('.calendar').hide();
+              this.container.removeClass('show-calendar');
+              this.updateView();
+            } else {
+              this.updateView();
+            }
+        },
+
+        leaveRange: function() {
+            if (this.active.label) {
+              if (this.active.label === this.locale.customDateLabel) {
+                this.showSingleCalendar()
+              } else if (this.active.label === this.locale.customRangeLabel) {
+                this.showRangeCalendars();
+              }
+            }
+            this.updateFormInputs();
+        },
+
+        showSingleCalendar: function(date) {
+            this.container.find('.daterangepicker_start_input, .daterangepicker_end_input').hide();
+            this.container.find('.daterangepicker_singleDate').show();
+            this.container.find('input[name=daterangepicker_singleDate]').val(moment(date).format(this.format));
+            this.container.addClass('single');
+            this.container.find('.calendar.left').show();
+            this.container.find('.calendar.right').hide();
+            this.container.addClass('show-calendar');
+        },
+
+        showRangeCalendars: function(dates) {
+            this.container.removeClass('single');
+            this.container.addClass('show-calendar');
+            this.container.find('.calendar.right').show();
+            this.container.find('.calendar.left').show();
+            this.container.find('.daterangepicker_singleDate').hide();
+            this.container.find('.daterangepicker_start_input, .daterangepicker_end_input').show();
+            if (dates) {
+              this.container.find('input[name=daterangepicker_start]').val(dates[0].format(this.format));
+              this.container.find('input[name=daterangepicker_end]').val(dates[1].format(this.format));
+            } else {
+              this.updateView();
+            }
+        
         },
 
         showCalendars: function() {
@@ -803,9 +827,13 @@
                   label: label,
                   el: $(e.target)
                 };
+                if (label == this.locale.customDateLabel) {
+                  this.container.find('td.available').removeClass('in-range');
+                }
                 this.showCalendars();
             } else {
                 var dates = this.ranges[label];
+                this.active.label = label;
 
                 this.startDate = dates[0];
                 this.endDate = dates[1];
@@ -890,6 +918,7 @@
 
             this.updateView();
             this.updateCalendars();
+            this.updateFormInputs();
 
             if (this.autoApply) {
                 this.notify();
@@ -1166,8 +1195,8 @@
         },
 
         renderCalendar: function (calendar, selected, minDate, maxDate, side) {
-
-            var html = '<div class="calendar-date">';
+           
+            var html = this.calendarInput[side] + '<div class="calendar-date">';
             html += '<table class="table-condensed">';
             html += '<thead>';
             html += '<tr>';
@@ -1406,4 +1435,5 @@
     };
 
 }));
+
 
