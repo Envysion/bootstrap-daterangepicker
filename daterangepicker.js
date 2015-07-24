@@ -460,13 +460,13 @@
 
             this.container.removeClass('opensleft opensright').addClass('opens' + this.opens);
 
-            if (this.startDate.isSame(this.endDate, 'day')) {
-                this.container.find('.daterangepicker_start_input, .daterangepicker_end_input').hide();
-                this.container.find('.daterangepicker_singleDate').show();
-            }
-
             this.updateView();
             this.updateCalendars();
+            this.updateFormInputs();
+
+            if (this.startDate.isSame(this.endDate, 'day')) {
+                this.showSingleCalendar();
+            }
 
             //apply CSS classes and labels to buttons
             var c = this.container;
@@ -735,6 +735,7 @@
         },
 
         showSingleCalendar: function(date) {
+            date = date || this.startDate;
             this.container.find('.daterangepicker_start_input, .daterangepicker_end_input').hide();
             this.container.find('.daterangepicker_singleDate').show();
             this.container.find('input[name=daterangepicker_singleDate]').val(moment(date).format(this.format));
